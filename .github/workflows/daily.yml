@@ -44,7 +44,7 @@ jobs:
           PY
 
   synchronize:
-    if: "github.event_name != 'push' || github.event.head_commit.message == 'test: verify cloud credentials and Spotify sync'"
+    if: github.event_name != 'push'
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -57,31 +57,6 @@ jobs:
           python-version: '3.12'
       - name: Verify script syntax
         run: python -m py_compile sync.py
-      - name: Probe four API secrets without printing their values
-        if: github.event_name == 'push'
-        env:
-          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
-          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
-          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
-          SPOTIFY_REFRESH_TOKEN: ${{ secrets.SPOTIFY_REFRESH_TOKEN }}
-        run: |
-          python - <<'PY'
-          import os, sync
-          missing = [key for key in sync.REQUIRED if not os.getenv(key)]
-          if missing: raise RuntimeError('Missing GitHub secrets: ' + ', '.join(missing))
-          response = sync.yt('channels', part='id', id=sync.YOUTUBE_CHANNELS['colinfurze'])
-          assert response.get('items'), 'YouTube returned no channel'
-          print('YouTube API: OK')
-          catalog = sync.spotify_token('client_credentials')
-          assert catalog, 'Spotify client credentials failed'
-          print('Spotify client credentials: OK')
-          token = sync.spotify_token('refresh_token', user=True)
-          profile = sync.spotify_api('/me', token)
-          playlist = sync.spotify_api('/playlists/' + sync.SPOTIFY_PLAYLIST, token)
-          assert playlist['owner']['id'] == profile['id'], 'Playlist not owned by user'
-          print('Spotify user refresh token, playlist owner: OK')
-          print('Playlist items:', len(sync.playlist_items(token)))
-          PY
       - name: Check YouTube and update Spotify
         id: spotify
         continue-on-error: true
