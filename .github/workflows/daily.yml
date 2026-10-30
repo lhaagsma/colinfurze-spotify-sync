@@ -44,7 +44,7 @@ jobs:
           PY
 
   synchronize:
-    if: github.event_name != 'push' || github.event.head_commit.message == 'test: verify cloud credentials and Spotify sync'
+    if: "github.event_name != 'push' || github.event.head_commit.message == 'test: verify cloud credentials and Spotify sync'"
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 10
