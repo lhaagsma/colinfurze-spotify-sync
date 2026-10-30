@@ -350,7 +350,7 @@ VERSION_WORDS = re.compile(r'\b(?:demo|live|acoustic|instrumental|remix|remaster
 
 
 def policy_normalize(value: str, *, artist: bool = False) -> str:
-    value = unicodedata.policy_normalize('NFKD', value or '').casefold()
+    value = unicodedata.normalize('NFKD', value or '').casefold()
     value = ''.join(c for c in value if not unicodedata.combining(c))
     value = value.replace('&', ' and ').replace('+', ' ')
     value = re.sub(r"[’']", '', value)
