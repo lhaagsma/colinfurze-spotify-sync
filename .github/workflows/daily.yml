@@ -43,6 +43,40 @@ jobs:
           print("Import, extractor and conservative Spotify match policy: OK")
           PY
 
+  audit_order:
+    if: "github.event_name == 'push' && github.event.head_commit.message == 'test: audit playlist chronological order'"
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Read only - check Spotify playlist sequence against bootstrap reference
+        env:
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+          SPOTIFY_REFRESH_TOKEN: ${{ secrets.SPOTIFY_REFRESH_TOKEN }}
+        run: |
+          python - <<'PY'
+          import sync, hashlib
+          token = sync.spotify_token('refresh_token', user=True)
+          uris = sync.playlist_items(token)
+          digest = hashlib.sha256('\n'.join(uris).encode()).hexdigest()
+          expected_digest = 'bc924bcd53882f19d3e179a27f1adea90c76d814f743ba4e84d16cf79a7de67b'
+          print(f'Playlist tracks: {len(uris)}')
+          print(f'Current order digest: {digest}')
+          print(f'Original 273-track export digest: {expected_digest}')
+          print(f'Exact order match: {len(uris)==273 and digest==expected_digest}')
+          print('First 20 Spotify tracks, actual playlist order:')
+          tracks = sync.spotify_api('/tracks', token, params={'ids':','.join(u.rsplit(':',1)[-1] for u in uris[:20])}).get('tracks') or []
+          for index, (uri, item) in enumerate(zip(uris, tracks), 1):
+              if not item:
+                  print(index,uri,'unavailable')
+              else:
+                  print(index, item.get('name'), ' / ', ', '.join(a.get('name','') for a in item.get('artists',[])), uri)
+          PY
   synchronize:
     if: github.event_name != 'push'
     needs: verify
