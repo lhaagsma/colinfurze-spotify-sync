@@ -1,6 +1,11 @@
 name: Daily Colin Furze to Spotify
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'sync.py'
+      - '.github/workflows/daily.yml'
   workflow_dispatch:
   schedule:
     - cron: '17 8 * * *'
@@ -14,7 +19,33 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Import Python module and verify known extraction/matching smoke cases
+        run: |
+          python -m py_compile sync.py
+          python - <<'PY'
+          import sync
+          assert callable(sync.extract_description)
+          assert callable(sync.rank)
+          assert sync.assess("Sample Band","Sample Song",{
+              "name":"Sample Song","artists":[{"name":"Sample Band"}]
+          }).status == "likely_match"
+          assert sync.assess("Sample Band","Sample Song",{
+              "name":"Sample Song (Demo)","artists":[{"name":"Sample Band"}]
+          }).status != "likely_match"
+          print("Import, extractor and conservative Spotify match policy: OK")
+          PY
+
   synchronize:
+    if: github.event_name != 'push'
+    needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
