@@ -1,0 +1,50 @@
+name: Daily Colin Furze to Spotify
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 8 * * *'
+      timezone: Europe/Amsterdam
+
+permissions:
+  contents: write
+
+concurrency:
+  group: colinfurze-spotify-sync
+  cancel-in-progress: false
+
+jobs:
+  synchronize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify script syntax
+        run: python -m py_compile sync.py
+      - name: Check YouTube and update Spotify
+        id: spotify
+        continue-on-error: true
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+          SPOTIFY_REFRESH_TOKEN: ${{ secrets.SPOTIFY_REFRESH_TOKEN }}
+        run: python sync.py
+      - name: Preserve public run history
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/videos.json data/runs.jsonl
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: archive daily Spotify sync $(date -u +%Y-%m-%d)"
+            git push
+          fi
+      - name: Fail the run if Spotify sync failed
+        if: steps.spotify.outcome == 'failure'
+        run: exit 1
