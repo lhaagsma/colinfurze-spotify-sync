@@ -10,6 +10,8 @@ on:
   schedule:
     - cron: '17 8 * * *'
       timezone: Europe/Amsterdam
+    - cron: '43 19 * * *'
+      timezone: Europe/Amsterdam
 
 permissions:
   contents: write
@@ -44,7 +46,7 @@ jobs:
           PY
 
   synchronize:
-    if: github.event_name != 'push'
+    if: "github.event_name != 'push' || github.event.head_commit.message == 'test: catch up missed daily sync'"
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 10
