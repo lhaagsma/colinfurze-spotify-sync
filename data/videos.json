@@ -2420,7 +2420,7 @@
   },
   "RBF8RYO1teY": {
     "channel": "colinfurze",
-    "checked_at": "2026-11-17T02:06:34.685570+00:00",
+    "checked_at": "2026-11-17T16:51:37.307764+00:00",
     "credits": [
       {
         "artist": "The Alternates",
@@ -2449,7 +2449,7 @@
       {
         "artist": "Droids Osaka",
         "confidence": 0.97,
-        "match_score": 33.5,
+        "match_score": 56.0,
         "match_status": "review",
         "spotify_uri": null,
         "track": "Youth 8500"
